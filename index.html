@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Contact Form</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --error: #EF4444;
+            --success: #10B981;
+            --bg: #F3F4F6;
+            --text: #1F2937;
+            --border: #D1D5DB;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Прогрес-бар */
+        .progress-wrapper {
+            background: #E5E7EB;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        /* Групи полів та Floating Labels */
+        .form-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px 12px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            background: transparent;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        label {
+            position: absolute;
+            left: 12px;
+            top: 14px;
+            color: #6B7280;
+            background: white;
+            padding: 0 4px;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Floating effect: коли фокус АБО поле не пусте (placeholder-shown) */
+        .form-control:focus ~ label,
+        .form-control:not(:placeholder-shown) ~ label {
+            top: -10px;
+            font-size: 12px;
+            color: var(--primary);
+        }
+
+        select.form-control {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Валідація (успіх/помилка) */
+        .form-group.success .form-control { border-color: var(--success); }
+        .form-group.error .form-control { border-color: var(--error); }
+        .form-group.error label { color: var(--error); }
+
+        .icon {
+            position: absolute;
+            right: 12px;
+            top: 14px;
+            font-weight: bold;
+            display: none;
+        }
+        .form-group.success .icon.check { display: block; color: var(--success); }
+        .form-group.error .icon.cross { display: block; color: var(--error); }
+
+        .error-text {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .form-group.error .error-text { display: block; }
+
+        /* Лічильник символів */
+        .char-counter {
+            font-size: 12px;
+            color: #6B7280;
+            position: absolute;
+            right: 0;
+            bottom: -20px;
+        }
+
+        /* Кнопка */
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+        }
+        button:not(:disabled):hover { background: #4338CA; }
+
+        .loading {
+            display: none;
+        }
+        button.is-loading .text { display: none; }
+        button.is-loading .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            text-align: center;
+            color: var(--success);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <div id="form-content">
+        <h2>Зв'яжіться з нами</h2>
+        
+        <div class="progress-wrapper" aria-label="Прогрес заповнення форми">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <form id="contact-form" novalidate>
+            <div class="form-group" id="group-name">
+                <input type="text" id="name" name="name" class="form-control" placeholder=" " aria-required="true">
+                <label for="name">Ім'я</label>
+                <span class="icon check">✓</span>
+                <span class="icon cross">✗</span>
+                <div class="error-text">Мінімум 2 символи, тільки літери</div>
+            </div>
+
+            <div class="form-group" id="group-email">
+                <input type="email" id="email" name="email" class="form-control" placeholder=" " aria-required="true">
+                <label for="email">Email</label>
+                <span class="icon check">✓</span>
+                <span class="icon cross">✗</span>
+                <div class="error-text">Введіть коректний email</div>
+            </div>
+
+            <div class="form-group" id="group-phone">
+                <input type="tel" id="phone" name="phone" class="form-control" placeholder=" " aria-required="true">
+                <label for="phone">Телефон (+380...)</label>
+                <span class="icon check">✓</span>
+                <span class="icon cross">✗</span>
+                <div class="error-text">Формат: +380XXXXXXXXX</div>
+            </div>
+
+            <div class="form-group" id="group-subject">
+                <select id="subject" name="subject" class="form-control" aria-required="true">
+                    <option value="" disabled selected hidden></option>
+                    <option value="support">Технічна підтримка</option>
+                    <option value="sales">Відділ продажів</option>
+                    <option value="other">Інше</option>
+                </select>
+                <label for="subject" style="top: -10px; font-size: 12px; color: var(--primary);">Тема</label>
+                <span class="icon check" style="right: 25px;">✓</span>
+                <span class="icon cross" style="right: 25px;">✗</span>
+                <div class="error-text">Виберіть тему звернення</div>
+            </div>
+
+            <div class="form-group" id="group-message" style="margin-bottom: 35px;">
+                <textarea id="message" name="message" class="form-control" placeholder=" " maxlength="500" aria-required="true"></textarea>
+                <label for="message">Повідомлення</label>
+                <span class="icon check">✓</span>
+                <span class="icon cross">✗</span>
+                <div class="error-text">Повідомлення має містити від 20 до 500 символів</div>
+                <div class="char-counter"><span id="char-count">0</span>/500</div>
+            </div>
+
+            <button type="submit" id="submit-btn" disabled>
+                <span class="text">Відправити</span>
+                <span class="loading">↻ Завантаження...</span>
+            </button>
+        </form>
+    </div>
+
+    <div class="success-message" id="success-message">
+        <h2 style="font-size: 48px; margin: 0;">✓</h2>
+        <h3>Дякуємо!</h3>
+        <p>Ваше повідомлення успішно відправлено.</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("contact-form");
+        const progressBar = document.getElementById("progress-bar");
+        const submitBtn = document.getElementById("submit-btn");
+        const charCount = document.getElementById("char-count");
+        const messageInput = document.getElementById("message");
+        
+        // Стан валідності полів
+        const validationState = {
+            name: false,
+            email: false,
+            phone: false,
+            subject: false,
+            message: false
+        };
+
+        // Правила валідації
+        const validators = {
+            name: (val) => /^[a-zA-Zа-яА-ЯіІїЇєЄґҐ\' \-]{2,}$/.test(val.trim()),
+            email: (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()),
+            phone: (val) => /^\+380\d{9}$/.test(val.trim()),
+            subject: (val) => val !== "",
+            message: (val) => val.trim().length >= 20 && val.trim().length <= 500
+        };
+
+        // Функція Debounce
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        // Оновлення прогрес-бару та кнопки Submit
+        function updateProgress() {
+            const totalFields = Object.keys(validationState).length;
+            const validFields = Object.values(validationState).filter(Boolean).length;
+            const percentage = (validFields / totalFields) * 100;
+            
+            progressBar.style.width = `${percentage}%`;
+            
+            // Кнопка активна тільки якщо всі поля валідні (100%)
+            submitBtn.disabled = percentage !== 100;
+        }
+
+        // Головна функція валідації поля
+        function validateField(field) {
+            const name = field.name;
+            const value = field.value;
+            const group = document.getElementById(`group-${name}`);
+            
+            if (!validators[name]) return; // Якщо поле не потребує валідації
+
+            const isValid = validators[name](value);
+            validationState[name] = isValid;
+
+            // Оновлення UI для поля
+            group.classList.remove('success', 'error');
+            if (value.trim() !== '') {
+                group.classList.add(isValid ? 'success' : 'error');
+            } else {
+                // Якщо поле пусте, вважаємо його невалідним, але не показуємо червону помилку поки що
+                validationState[name] = false;
+            }
+
+            updateProgress();
+        }
+
+        // Обгортка валідації з Debounce (затримка 300мс)
+        const debouncedValidate = debounce((target) => {
+            validateField(target);
+        }, 300);
+
+        // Event Delegation: слухаємо всі 'input' в формі
+        form.addEventListener('input', (e) => {
+            const target = e.target;
+            
+            // Оновлення лічильника символів для повідомлення без затримки
+            if (target.name === 'message') {
+                charCount.textContent = target.value.length;
+            }
+            
+            // Виклик debounced валідації
+            debouncedValidate(target);
+        });
+
+        // Валідація select (оскільки 'input' не завжди ідеально працює для селекта)
+        document.getElementById('subject').addEventListener('change', (e) => {
+            validateField(e.target);
+        });
+
+        // Обробка відправки форми
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Фінальна перевірка, чи не зламали кнопку через DevTools
+            if (submitBtn.disabled) return;
+
+            // Loading state
+            submitBtn.classList.add('is-loading');
+            submitBtn.disabled = true;
+
+            // Імітація запиту на сервер (2 секунди)
+            setTimeout(() => {
+                document.getElementById('form-content').style.display = 'none';
+                document.getElementById('success-message').style.display = 'block';
+            }, 2000);
+        });
+    });
+</script>
+
+</body>
+</html>
